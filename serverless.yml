@@ -1,0 +1,90 @@
+org: naoki0000
+app: dynamodb-tutorial
+service: dynamodb-tutorial
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  environment: # lambda内で使用する環境変数を指定できる
+    DYNAMODB_USER_TABLE: ${self:app}-userTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - "cognito:*"
+        - "apigateway:*"
+      Resource:
+        - "*"
+
+functions:
+  createUser:
+    handler: handler.createUser
+    events:
+      - httpApi:
+          path: /createUser
+          method: post
+  getUser:
+    handler: handler.getUser
+    events:
+      - httpApi:
+          path: /getUser
+          method: get
+  getAllUser:
+    handler: handler.getAllUser
+    events:
+      - httpApi:
+          path: /getAllUser
+          method: get
+  getUsers:
+    handler: handler.getUsers
+    events:
+      - httpApi:
+          path: /getUsers
+          method: get
+  updateUser:
+    handler: handler.updateUser
+    events:
+      - httpApi:
+          path: /updateUser
+          method: post
+  deleteUser:
+    handler: handler.deleteUser
+    events:
+      - httpApi:
+          path: /deleteUser
+          method: delete
+resources:
+  Resources:
+    UserTable: # 作成するテーブル名
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:app}-userTable # 任意のテーブル名
+        ProvisionedThroughput: # TODO: 調べる エラーが治る
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        AttributeDefinitions: # 属性の定義（必須属性のみで良い）
+          - AttributeName: email
+            AttributeType: S
+          - AttributeName: name
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH # primary key 必須
+        GlobalSecondaryIndexes:
+          - IndexName: name-index
+            KeySchema:
+              - AttributeName: name
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
